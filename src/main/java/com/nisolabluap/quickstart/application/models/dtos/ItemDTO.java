@@ -1,15 +1,18 @@
 package com.nisolabluap.quickstart.application.models.dtos;
 
+import com.nisolabluap.quickstart.application.enums.ProductCategory;
 import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class InventoryDTO {
+public class ItemDTO {
 
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
     @NotBlank(message = "Name must not be empty.")
@@ -21,12 +24,16 @@ public class InventoryDTO {
     @ApiModelProperty(value = "Description must not exceed 500 characters.")
     private String description;
 
-    @NotBlank(message = "ISBN must not be empty.")
-    @Pattern(regexp = "^[0-9]{13}$", message = "ISBN must be a 13-digit number.")
-    @ApiModelProperty(value = "ISBN must not be empty and must be a 13-digit number.")
-    private String isbn;
+    private Long availableQuantity;
+
+    @NotNull(message = "Product category must not be empty.")
+    @ApiModelProperty(value = "Product category must not be empty.")
+    private ProductCategory productCategory;
 
     @Min(value = 1, message = "Price must be greater than or equal to 0.")
     @ApiModelProperty(value = "Price must be greater than or equal to 0.")
     private double price;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private String isbn;
 }

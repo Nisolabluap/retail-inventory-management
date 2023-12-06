@@ -2,8 +2,8 @@ package com.nisolabluap.quickstart.application.exceptions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nisolabluap.quickstart.application.exceptions.inventory_controller.DuplicateInventoryItemException;
-import com.nisolabluap.quickstart.application.exceptions.inventory_controller.InventoryNotFoundException;
+import com.nisolabluap.quickstart.application.exceptions.item.DuplicateItemException;
+import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +30,13 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
 
     private final ObjectMapper objectMapper;
 
-    @ExceptionHandler(DuplicateInventoryItemException.class)
-    public ResponseEntity<String> duplicateInventoryItemException(DuplicateInventoryItemException duplicateInventoryItemException) {
-        return new ResponseEntity<>(objectToString(Map.of("message", duplicateInventoryItemException.getMessage())), BAD_REQUEST);
+    @ExceptionHandler(DuplicateItemException.class)
+    public ResponseEntity<String> duplicateItemException(DuplicateItemException duplicateItemException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", duplicateItemException.getMessage())), BAD_REQUEST);
     }
 
-    @ExceptionHandler(InventoryNotFoundException.class)
-    public ResponseEntity<String> inventoryNotFoundException(InventoryNotFoundException inventoryNotFoundException) {
+    @ExceptionHandler(ItemNotFoundException.class)
+    public ResponseEntity<String> itemNotFoundException(ItemNotFoundException inventoryNotFoundException) {
         return new ResponseEntity<>(objectToString(Map.of("message", inventoryNotFoundException.getMessage())), BAD_REQUEST);
     }
 

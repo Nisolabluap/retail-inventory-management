@@ -1,13 +1,35 @@
 package com.nisolabluap.quickstart.application.services;
-/*
-import com.nisolabluap.quickstart.application.models.dtos.InventoryDTO;
+
+import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
+import com.nisolabluap.quickstart.application.models.entities.Item;
+import com.nisolabluap.quickstart.application.repositories.ItemRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.util.StringUtils;
+
+import java.util.Optional;
 
 @Service
-public class InventoryValidator {
+public class Validator {
 
-    public void validateInventoryItem(InventoryDTO inventoryDTO) {
+    @Autowired
+    private ItemRepository itemRepository;
+
+    public Long findExistingIdByIsbn(String isbn) {
+        Optional<Item> optionalInventory = itemRepository.findByIsbn(isbn);
+
+        return optionalInventory.map(Item::getId)
+                .orElseThrow(() -> new ItemNotFoundException("Item with ISBN: " + isbn + " not found."));
+    }
+
+    public String getDuplicateItemMessage(String isbn, Long existingId) {
+        return String.format("An item with this ISBN: %s already exists. Duplicate with existing ID: %s.", isbn, existingId);
+    }
+
+    public String getItemNotFoundMessage(Long id) {
+        return String.format("Item with ID: %d not found.", id);
+    }
+
+    /*public void validateInventoryItem(InventoryDTO inventoryDTO) {
         validateName(inventoryDTO.getName());
         validateLocation(inventoryDTO.getLocation());
         validateDescription(inventoryDTO.getDescription());
@@ -58,6 +80,5 @@ public class InventoryValidator {
         if (price > Double.MAX_VALUE) {
             throw new IllegalArgumentException("Price exceeds the maximum value.");
         }
-    }
+    }*/
 }
-*/
