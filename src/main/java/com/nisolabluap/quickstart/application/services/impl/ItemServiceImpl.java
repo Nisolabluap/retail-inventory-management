@@ -4,24 +4,38 @@ import com.nisolabluap.quickstart.application.exceptions.item.DuplicateItemExcep
 import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
 import com.nisolabluap.quickstart.application.models.dtos.ItemDTO;
 import com.nisolabluap.quickstart.application.models.dtos.ItemUpdateIsbnDTO;
+import com.nisolabluap.quickstart.application.models.entities.Customer;
 import com.nisolabluap.quickstart.application.models.entities.Item;
+import com.nisolabluap.quickstart.application.repositories.CustomerRepository;
 import com.nisolabluap.quickstart.application.repositories.ItemRepository;
+import com.nisolabluap.quickstart.application.services.CustomerService;
 import com.nisolabluap.quickstart.application.services.ItemService;
 import com.nisolabluap.quickstart.application.services.Validator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
 
     @Autowired
-    private ItemRepository itemRepository;
+    private final ItemRepository itemRepository;
 
     @Autowired
-    private Validator validator;
+    private final Validator validator;
+
+    @Autowired
+    private final CustomerService customerService;
+
+    @Autowired
+    private final CustomerRepository customerRepository;
 
     @Override
     public List<ItemDTO> getAllItems() {
@@ -67,10 +81,21 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public void deleteInventoryItemById(Long id) {
-        if (!itemRepository.existsById(id)) {
+    public void deleteItemById(Long id) {
+        Optional<Item> optionalItem = itemRepository.findById(id);
+
+        if (optionalItem.isEmpty()) {
             throw new ItemNotFoundException(validator.getItemNotFoundMessage(id));
         }
+
+        Item item = optionalItem.get();
+
+        List<Customer> customers = customerRepository.findByFavoriteItemsContaining(item);
+        for (Customer customer : customers) {
+            customer.getFavoriteItems().remove(item);
+        }
+        customerRepository.saveAll(customers);
+
         itemRepository.deleteById(id);
     }
 

@@ -1,4 +1,4 @@
-package com.nisolabluap.quickstart.application.enums;
+package com.nisolabluap.quickstart.application.models.enums;
 
 public enum ProductCategory {
 
