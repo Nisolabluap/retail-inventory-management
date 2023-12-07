@@ -35,13 +35,13 @@ public class ItemController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error.")
             }
     )
-    public List<ItemDTO> getAllInventory() {
+    public List<ItemDTO> getAllItems() {
         return ResponseEntity.ok(itemService.getAllItems()).getBody();
     }
 
     @PostMapping
     @Operation(
-            summary = "Create a new inventory item.",
+            summary = "Create a new item.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Item created successfully."),
                     @ApiResponse(responseCode = "400", description = "Bad Request."),
@@ -82,7 +82,7 @@ public class ItemController {
 
     @GetMapping("/{id}")
     @Operation(
-            summary = "Get an inventory item by ID.",
+            summary = "Get an item by ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Item retrieved successfully."),
                     @ApiResponse(responseCode = "404", description = "Item not found."),
@@ -95,7 +95,7 @@ public class ItemController {
 
     @DeleteMapping("/{id}")
     @Operation(
-            summary = "Delete an inventory item by ID.",
+            summary = "Delete an item by ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Item deleted successfully."),
                     @ApiResponse(responseCode = "404", description = "Item not found."),
@@ -103,14 +103,14 @@ public class ItemController {
             }
     )
     public ResponseEntity<String> deleteItemById(@PathVariable Long id) {
-        itemService.deleteInventoryItemById(id);
+        itemService.deleteItemById(id);
         return ResponseEntity.ok("The item has been deleted.");
     }
 
     @Value("${inventory.delete.password}")
     private String deletePassword;
 
-    @DeleteMapping("/delete-all")
+    @DeleteMapping
     @Operation(
             summary = "Delete all inventory items.",
             responses = {

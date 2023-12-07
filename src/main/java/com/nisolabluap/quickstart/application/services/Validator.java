@@ -18,15 +18,23 @@ public class Validator {
         Optional<Item> optionalInventory = itemRepository.findByIsbn(isbn);
 
         return optionalInventory.map(Item::getId)
-                .orElseThrow(() -> new ItemNotFoundException("Item with ISBN: " + isbn + " not found."));
+                .orElseThrow(() -> new ItemNotFoundException("Item with ISBN: '" + isbn + "' not found."));
     }
 
     public String getDuplicateItemMessage(String isbn, Long existingId) {
-        return String.format("An item with this ISBN: %s already exists. Duplicate with existing ID: %s.", isbn, existingId);
+        return String.format("An item with this ISBN: '%s' already exists. Duplicate with existing ID: '%s'.", isbn, existingId);
     }
 
     public String getItemNotFoundMessage(Long id) {
-        return String.format("Item with ID: %d not found.", id);
+        return String.format("Item with ID: '%d' not found.", id);
+    }
+
+    public String getDuplicateEmailMessage(String email) {
+        return String.format("An user with this EMAIL: '%s' already exists.", email);
+    }
+
+    public String getCustomerNotFoundMessage(Long id) {
+        return String.format("Customer with ID: '%d' not found.", id);
     }
 
     /*public void validateInventoryItem(InventoryDTO inventoryDTO) {

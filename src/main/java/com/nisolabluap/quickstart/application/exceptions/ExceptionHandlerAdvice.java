@@ -2,6 +2,8 @@ package com.nisolabluap.quickstart.application.exceptions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nisolabluap.quickstart.application.exceptions.customer.CustomerNotFoundException;
+import com.nisolabluap.quickstart.application.exceptions.customer.DuplicateEmailException;
 import com.nisolabluap.quickstart.application.exceptions.item.DuplicateItemException;
 import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
 import jakarta.validation.ConstraintViolation;
@@ -38,6 +40,16 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ItemNotFoundException.class)
     public ResponseEntity<String> itemNotFoundException(ItemNotFoundException inventoryNotFoundException) {
         return new ResponseEntity<>(objectToString(Map.of("message", inventoryNotFoundException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<String> DuplicateEmailException(DuplicateEmailException duplicateEmailException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", duplicateEmailException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<String> customerNotFoundException(CustomerNotFoundException customerNotFoundException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", customerNotFoundException.getMessage())), BAD_REQUEST);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

@@ -1,9 +1,12 @@
 package com.nisolabluap.quickstart.application.models.entities;
 
-import com.nisolabluap.quickstart.application.enums.ProductCategory;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.nisolabluap.quickstart.application.models.enums.ProductCategory;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -34,8 +37,25 @@ public class Item {
     @Column(name = "isbn", unique = true)
     private String isbn;
 
+    @ManyToMany(mappedBy = "favoriteItems", fetch = FetchType.EAGER)
+    @JsonBackReference
+    private Set<Customer> customers;
+
     @PrePersist
     private void generateIsbn() {
         isbn = UUID.randomUUID().toString().replaceAll("\\D", "").substring(0, 13);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Item other = (Item) obj;
+        return Objects.equals(id, other.id);
     }
 }
