@@ -3,8 +3,8 @@ package com.nisolabluap.quickstart.application.services.impl;
 import com.nisolabluap.quickstart.application.exceptions.customer.CustomerNotFoundException;
 import com.nisolabluap.quickstart.application.exceptions.customer.DuplicateEmailException;
 import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
+import com.nisolabluap.quickstart.application.models.dtos.CustomerCreateDTO;
 import com.nisolabluap.quickstart.application.models.dtos.CustomerDTO;
-import com.nisolabluap.quickstart.application.models.dtos.ItemDTO;
 import com.nisolabluap.quickstart.application.models.entities.Customer;
 import com.nisolabluap.quickstart.application.models.entities.Item;
 import com.nisolabluap.quickstart.application.repositories.CustomerRepository;
@@ -44,18 +44,18 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public CustomerDTO createCustomer(CustomerDTO customerDTO) {
-        validateDuplicateItemByEmail(customerDTO.getEmail());
-        Customer customer = convertToEntity(customerDTO);
+    public CustomerDTO createCustomer(CustomerCreateDTO customerCreateDTO) {
+        validateDuplicateEmail(customerCreateDTO.getEmail());
+        Customer customer = convertToEntity(customerCreateDTO);
         Customer savedCustomer = customerRepository.save(customer);
         return convertToDTO(savedCustomer);
     }
 
     @Override
-    public CustomerDTO updateCustomerById(Long id, CustomerDTO customerDTO) {
-        validateDuplicateItemByEmail(customerDTO.getEmail());
+    public CustomerDTO updateCustomerById(Long id, CustomerCreateDTO customerCreateDTO) {
         Customer existingCustomer = getCustomerByIdOrThrowException(id);
-        BeanUtils.copyProperties(customerDTO, existingCustomer, "id", "createdAt");
+        validateDuplicateIdAndEmail(id, customerCreateDTO.getEmail());
+        BeanUtils.copyProperties(customerCreateDTO, existingCustomer, "id", "createdAt");
 
         Customer updatedCustomer = customerRepository.save(existingCustomer);
         return convertToDTO(updatedCustomer);
@@ -68,14 +68,14 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public CustomerDTO deleteCustomerById(Long id) {
+    public void deleteCustomerById(Long id) {
         Optional<Customer> optionalCustomer = customerRepository.findById(id);
         if (optionalCustomer.isEmpty()) {
             throw new CustomerNotFoundException(validator.getCustomerNotFoundMessage(id));
         }
         Customer deletedCustomer = optionalCustomer.get();
         customerRepository.deleteById(id);
-        return convertToDTO(deletedCustomer);
+        convertToDTO(deletedCustomer);
     }
 
     @Override
@@ -98,9 +98,9 @@ public class CustomerServiceImpl implements CustomerService {
         return customerDTO;
     }
 
-    private Customer convertToEntity(CustomerDTO customerDTO) {
+    private Customer convertToEntity(CustomerCreateDTO customerCreateDTO) {
         Customer customer = new Customer();
-        BeanUtils.copyProperties(customerDTO, customer);
+        BeanUtils.copyProperties(customerCreateDTO, customer);
         return customer;
     }
 
@@ -112,7 +112,13 @@ public class CustomerServiceImpl implements CustomerService {
         }
     }
 
-    private void validateDuplicateItemByEmail(String email) {
+    private void validateDuplicateIdAndEmail(Long userId, String email) {
+        if (customerRepository.existsByEmailAndIdNot(email, userId)) {
+            throw new DuplicateEmailException(validator.getDuplicateEmailMessage(email));
+        }
+    }
+
+    private void validateDuplicateEmail(String email) {
         if (customerRepository.existsByEmail(email)) {
             throw new DuplicateEmailException(validator.getDuplicateEmailMessage(email));
         }

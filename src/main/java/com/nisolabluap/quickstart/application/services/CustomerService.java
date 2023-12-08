@@ -1,5 +1,6 @@
 package com.nisolabluap.quickstart.application.services;
 
+import com.nisolabluap.quickstart.application.models.dtos.CustomerCreateDTO;
 import com.nisolabluap.quickstart.application.models.dtos.CustomerDTO;
 import jakarta.transaction.Transactional;
 
@@ -9,13 +10,13 @@ public interface CustomerService {
 
     List<CustomerDTO> getAllCustomers();
 
-    CustomerDTO createCustomer(CustomerDTO customerDTO);
+    CustomerDTO createCustomer(CustomerCreateDTO customerCreateDTO);
 
-    CustomerDTO updateCustomerById(Long id, CustomerDTO customerDTO);
+    CustomerDTO updateCustomerById(Long id, CustomerCreateDTO customerCreateDTO);
 
     CustomerDTO getCustomerById(Long id);
 
-    CustomerDTO deleteCustomerById(Long id);
+    void deleteCustomerById(Long id);
 
     @Transactional
     void toggleFavoriteItems(Long customerId, List<Long> itemIds);

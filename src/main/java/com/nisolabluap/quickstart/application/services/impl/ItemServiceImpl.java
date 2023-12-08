@@ -57,7 +57,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDTO updateItemById(Long id, ItemDTO itemDTO) {
         Item existingItem = getItemByIdOrThrowException(id);
-        BeanUtils.copyProperties(itemDTO, existingItem, "id");
+        BeanUtils.copyProperties(itemDTO, existingItem, "id", "isbn");
 
         Item updatedItem = itemRepository.save(existingItem);
         return convertToDTO(updatedItem);
@@ -65,11 +65,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemUpdateIsbnDTO updateItemIsbnById(Long id, ItemUpdateIsbnDTO itemUpdateIsbnDTO) {
-        validateDuplicateItemByIsbn(itemUpdateIsbnDTO.getIsbn());
-
         Item existingItem = getItemByIdOrThrowException(id);
+        validateDuplicateIdAndIsbn(id, itemUpdateIsbnDTO.getIsbn());
         BeanUtils.copyProperties(itemUpdateIsbnDTO, existingItem, "id");
-
         Item updatedItem = itemRepository.save(existingItem);
         return convertToItemUpdateIsbnDTO(updatedItem);
     }
@@ -120,6 +118,12 @@ public class ItemServiceImpl implements ItemService {
         ItemUpdateIsbnDTO itemUpdateIsbnDTO = new ItemUpdateIsbnDTO();
         BeanUtils.copyProperties(item, itemUpdateIsbnDTO);
         return itemUpdateIsbnDTO;
+    }
+
+    private void validateDuplicateIdAndIsbn(Long id, String isbn) {
+        if (itemRepository.existsByIdAndIsbnNot(id, isbn)) {
+            throw new DuplicateItemException(validator.getDuplicateItemMessage(isbn, validator.findExistingIdByIsbn(isbn)));
+        }
     }
 
     private void validateDuplicateItemByIsbn(String isbn) {

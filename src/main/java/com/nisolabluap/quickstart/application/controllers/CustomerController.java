@@ -1,5 +1,6 @@
 package com.nisolabluap.quickstart.application.controllers;
 
+import com.nisolabluap.quickstart.application.models.dtos.CustomerCreateDTO;
 import com.nisolabluap.quickstart.application.models.dtos.CustomerDTO;
 import com.nisolabluap.quickstart.application.models.dtos.ItemDTO;
 import com.nisolabluap.quickstart.application.services.CustomerService;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -37,7 +39,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getAllCustomers()).getBody();
     }
 
-    @PostMapping
+    @PostMapping("/customers")
     @Operation(
             summary = "Create a new customer.",
             responses = {
@@ -46,13 +48,15 @@ public class CustomerController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error.")
             }
     )
-    public CustomerDTO createCustomer(@Valid @RequestBody CustomerDTO customerDTO) {
-        return ResponseEntity.ok(customerService.createCustomer(customerDTO)).getBody();
+    public ResponseEntity<CustomerCreateDTO> createCustomer(@Valid @RequestBody CustomerCreateDTO customerCreateDTO) {
+        CustomerDTO createdCustomer = customerService.createCustomer(customerCreateDTO);
+        CustomerCreateDTO createdCustomerCreateDTO = convertToCustomerCreateDTO(createdCustomer);
+        return ResponseEntity.ok(createdCustomerCreateDTO);
     }
 
     @PutMapping("/{id}")
     @Operation(
-            summary = "Update an customer by ID.",
+            summary = "Update a customer by ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Customer updated successfully."),
                     @ApiResponse(responseCode = "400", description = "Bad Request."),
@@ -60,13 +64,14 @@ public class CustomerController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error.")
             }
     )
-    public CustomerDTO updateCustomerById(@PathVariable Long id, @Valid @RequestBody CustomerDTO customerDTO) {
-        return ResponseEntity.ok(customerService.updateCustomerById(id, customerDTO)).getBody();
+    public ResponseEntity<CustomerDTO> updateCustomerById(@PathVariable Long id, @Valid @RequestBody CustomerCreateDTO customerCreateDTO) {
+        CustomerDTO updatedCustomer = customerService.updateCustomerById(id, customerCreateDTO);
+        return ResponseEntity.ok(updatedCustomer);
     }
 
     @GetMapping("/{id}")
     @Operation(
-            summary = "Get an customer by ID.",
+            summary = "Get a customer by ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Customer retrieved successfully."),
                     @ApiResponse(responseCode = "404", description = "Customer not found."),
@@ -79,7 +84,7 @@ public class CustomerController {
 
     @DeleteMapping("/{id}")
     @Operation(
-            summary = "Delete an customer by ID.",
+            summary = "Delete a customer by ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Customer deleted successfully."),
                     @ApiResponse(responseCode = "404", description = "Customer not found."),
@@ -105,5 +110,11 @@ public class CustomerController {
             @RequestParam List<Long> itemIds) {
         customerService.toggleFavoriteItems(customerId, itemIds);
         return ResponseEntity.ok("Action complete.");
+    }
+
+    private CustomerCreateDTO convertToCustomerCreateDTO(CustomerDTO customerDTO) {
+        CustomerCreateDTO customerCreateDTO = new CustomerCreateDTO();
+        BeanUtils.copyProperties(customerDTO, customerCreateDTO);
+        return customerCreateDTO;
     }
 }
