@@ -15,6 +15,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     boolean existsByEmail(String email);
 
+    boolean existsByEmailAndIdNot(String email, Long id);
+
     @Query("SELECT c FROM Customer c JOIN c.favoriteItems fi WHERE fi = :item")
     List<Customer> findByFavoriteItemsContaining(Item item);
 

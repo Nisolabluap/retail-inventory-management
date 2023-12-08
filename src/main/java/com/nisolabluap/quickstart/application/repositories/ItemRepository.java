@@ -11,5 +11,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     boolean existsByIsbn(String isbn);
 
+    boolean existsByIdAndIsbnNot(Long id, String isbn);
+
     Optional<Item> findByIsbn(String isbn);
 }
