@@ -37,9 +37,13 @@ public class Item {
     @Column(name = "isbn", unique = true)
     private String isbn;
 
-    @ManyToMany(mappedBy = "favoriteItems", fetch = FetchType.EAGER)
+    @ManyToMany(mappedBy = "favoriteItems", fetch = FetchType.LAZY)
     @JsonBackReference
     private Set<Customer> customers;
+
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL)
+    @JsonBackReference
+    private Set<OrderItem> orderItems;
 
     @PrePersist
     private void generateIsbn() {
@@ -59,3 +63,4 @@ public class Item {
         return Objects.equals(id, other.id);
     }
 }
+

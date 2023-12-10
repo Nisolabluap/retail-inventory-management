@@ -3,6 +3,7 @@ package com.nisolabluap.quickstart.application.models.entities;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +31,7 @@ public class Customer {
     @Column(name = "birthday")
     private LocalDate birthday;
 
+    @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -45,10 +47,9 @@ public class Customer {
     @JsonManagedReference
     private Set<Item> favoriteItems;
 
-    @PrePersist
-    private void localTime() {
-        createdAt = LocalDateTime.now();
-    }
+    @OneToMany(mappedBy = "customerId", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private Set<Order> orders;
 
     @Override
     public int hashCode() {
@@ -62,10 +63,4 @@ public class Customer {
         Customer other = (Customer) obj;
         return Objects.equals(id, other.id);
     }
-
-   /* @OneToMany
-    private Set<Order> orders;
-
-    @OneToMany
-    private Set<Review> reviews;*/
 }

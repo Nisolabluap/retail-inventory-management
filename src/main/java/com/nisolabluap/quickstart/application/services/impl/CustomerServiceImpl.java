@@ -61,6 +61,7 @@ public class CustomerServiceImpl implements CustomerService {
         return convertToDTO(updatedCustomer);
     }
 
+    @Transactional
     @Override
     public CustomerDTO getCustomerById(Long id) {
         Customer customer = getCustomerByIdOrThrowException(id);

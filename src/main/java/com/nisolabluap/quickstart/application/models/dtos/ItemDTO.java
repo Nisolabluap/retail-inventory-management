@@ -34,6 +34,6 @@ public class ItemDTO {
     @Schema(description = "Price of the item", example = "49.99", minimum = "0.0")
     private double price;
 
-    @Schema(description = "ISBN of the item", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "ISBN of the item.", accessMode = Schema.AccessMode.READ_ONLY)
     private String isbn;
 }
