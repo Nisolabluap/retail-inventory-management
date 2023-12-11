@@ -11,7 +11,7 @@ public class OrderItemDTO {
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private String itemName;
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-    private int quantity;
+    private Integer quantityPerItem;
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-    private double totalPrice;
+    private double price;
 }

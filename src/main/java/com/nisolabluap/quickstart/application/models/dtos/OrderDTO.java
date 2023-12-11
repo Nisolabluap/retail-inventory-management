@@ -4,7 +4,9 @@ import com.nisolabluap.quickstart.application.models.entities.OrderItem;
 import com.nisolabluap.quickstart.application.models.enums.OrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -32,12 +34,7 @@ public class OrderDTO {
     @Schema(description = "List of items with quantities and total price")
     private List<OrderItemDTO> items;
 
-    @Schema(description = "Total quantity of items in the order.", accessMode = Schema.AccessMode.READ_ONLY)
-    private int quantity;
+    private Integer totalQuantity;
 
-    @Schema(description = "Total price of the order.", accessMode = Schema.AccessMode.READ_ONLY)
     private double totalPrice;
-
-    @Schema(description = "Ordered items.", accessMode = Schema.AccessMode.READ_ONLY)
-    private Set<OrderItem> orderItems;
 }

@@ -27,13 +27,11 @@ import java.util.Optional;
 public class CustomerServiceImpl implements CustomerService {
 
     @Autowired
-    private final CustomerRepository customerRepository;
-
+    private CustomerRepository customerRepository;
     @Autowired
-    private final ItemRepository itemRepository;
-
+    private ItemRepository itemRepository;
     @Autowired
-    private final Validator validator;
+    private Validator validator;
 
     @Override
     public List<CustomerDTO> getAllCustomers() {

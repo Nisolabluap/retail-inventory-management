@@ -24,7 +24,7 @@ public class Item {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "available_quantity")
+    @Column(name = "available_quantity", nullable = false)
     private Long availableQuantity;
 
     @Column(name = "product_category")
@@ -41,26 +41,9 @@ public class Item {
     @JsonBackReference
     private Set<Customer> customers;
 
-    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL)
-    @JsonBackReference
-    private Set<OrderItem> orderItems;
-
     @PrePersist
     private void generateIsbn() {
         isbn = UUID.randomUUID().toString().replaceAll("\\D", "").substring(0, 13);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        Item other = (Item) obj;
-        return Objects.equals(id, other.id);
     }
 }
 

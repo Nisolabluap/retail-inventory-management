@@ -26,16 +26,11 @@ import java.util.Optional;
 public class ItemServiceImpl implements ItemService {
 
     @Autowired
-    private final ItemRepository itemRepository;
-
+    private ItemRepository itemRepository;
     @Autowired
-    private final Validator validator;
-
+    private Validator validator;
     @Autowired
-    private final CustomerService customerService;
-
-    @Autowired
-    private final CustomerRepository customerRepository;
+    private CustomerRepository customerRepository;
 
     @Override
     public List<ItemDTO> getAllItems() {
@@ -63,10 +58,11 @@ public class ItemServiceImpl implements ItemService {
         return convertToDTO(updatedItem);
     }
 
-    @Override
     public ItemUpdateIsbnDTO updateItemIsbnById(Long id, ItemUpdateIsbnDTO itemUpdateIsbnDTO) {
         Item existingItem = getItemByIdOrThrowException(id);
-        validateDuplicateIdAndIsbn(id, itemUpdateIsbnDTO.getIsbn());
+        if (!existingItem.getIsbn().equals(itemUpdateIsbnDTO.getIsbn())) {
+            validateDuplicateItemByIsbn(itemUpdateIsbnDTO.getIsbn());
+        }
         BeanUtils.copyProperties(itemUpdateIsbnDTO, existingItem, "id");
         Item updatedItem = itemRepository.save(existingItem);
         return convertToItemUpdateIsbnDTO(updatedItem);

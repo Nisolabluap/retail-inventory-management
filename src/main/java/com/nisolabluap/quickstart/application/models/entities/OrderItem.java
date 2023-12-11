@@ -1,6 +1,7 @@
 package com.nisolabluap.quickstart.application.models.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -11,6 +12,7 @@ public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private Long id;
 
     @ManyToOne
@@ -20,11 +22,13 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "item_id")
+    @JsonBackReference
     private Item item;
 
     @Column(name = "quantity")
-    private int quantity;
+    private Integer quantityPerItem;
 
-    @Column(name = "total_price")
-    private double totalPrice;
+    @Column(name = "total")
+    private double price;
 }
+

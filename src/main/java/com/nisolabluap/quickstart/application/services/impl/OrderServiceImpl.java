@@ -2,7 +2,6 @@ package com.nisolabluap.quickstart.application.services.impl;
 
 import com.nisolabluap.quickstart.application.exceptions.customer.CustomerNotFoundException;
 import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
-import com.nisolabluap.quickstart.application.models.dtos.ItemDTO;
 import com.nisolabluap.quickstart.application.models.dtos.OrderDTO;
 import com.nisolabluap.quickstart.application.models.dtos.OrderItemDTO;
 import com.nisolabluap.quickstart.application.models.entities.Customer;
@@ -14,52 +13,43 @@ import com.nisolabluap.quickstart.application.repositories.CustomerRepository;
 import com.nisolabluap.quickstart.application.repositories.ItemRepository;
 import com.nisolabluap.quickstart.application.repositories.OrderRepository;
 import com.nisolabluap.quickstart.application.services.OrderService;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    private final OrderRepository orderRepository;
-    private final ItemRepository itemRepository;
-    private final CustomerRepository customerRepository;
-
     @Autowired
-    public OrderServiceImpl(OrderRepository orderRepository, ItemRepository itemRepository, CustomerRepository customerRepository) {
-        this.orderRepository = orderRepository;
-        this.itemRepository = itemRepository;
-        this.customerRepository = customerRepository;
-    }
+    private OrderRepository orderRepository;
+    @Autowired
+    private ItemRepository itemRepository;
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @Transactional
     @Override
     public OrderDTO createOrder(OrderDTO orderDTO, Long customerId, List<Long> itemIds, List<Long> itemQuantities) {
         Map<Long, Long> itemIdQuantityMap = getLongLongMap(itemIds, itemQuantities);
 
-        // Validate quantities for each item
-        if (itemIdQuantityMap.values().stream().anyMatch(qty -> qty <= 0)) {
-            throw new CustomerNotFoundException("Invalid quantities. Each quantity should be greater than 0.");
+        if (!isValidQuantities(new ArrayList<>(itemIdQuantityMap.values()), itemIdQuantityMap.size())) {
+            throw new ItemNotFoundException("Invalid quantities. Each quantity should be greater than 0 and not exceed the number of itemIds.");
         }
 
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found!"));
 
-        List<Item> items = itemRepository.findAllById(itemIds);
+        List<Item> items = itemRepository.findAllById(new ArrayList<>(itemIdQuantityMap.keySet()));
 
         if (items.isEmpty()) {
             throw new ItemNotFoundException("Items not found!");
         }
 
-        // Assuming you want to check the stock of each item in the order
         for (Item item : items) {
-            Long itemId = item.getId();
-            Long quantity = itemIdQuantityMap.get(itemId);
+            Long quantity = itemIdQuantityMap.get(item.getId());
             if (quantity > item.getAvailableQuantity()) {
                 throw new ItemNotFoundException("Insufficient stock for one or more items in the order.");
             }
@@ -72,83 +62,132 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setCustomerId(customer);
         order.setOrderStatus(OrderStatus.PAYED);
-        order.setCreatedAt(LocalDateTime.now());
-        order.setItems(new HashSet<>());
-        order.setQuantity(itemIdQuantityMap.values().stream().mapToInt(Long::intValue).sum());
+        order.setOrderItems(new HashSet<>());
+        order.setTotalQuantity(itemIdQuantityMap.values().stream().mapToInt(Long::intValue).sum());
         order.setTotalPrice(totalPrice);
-
-        List<OrderItem> orderItems = new ArrayList<>();
-        for (Item item : items) {
-            Long itemId = item.getId();
-            Long quantity = itemIdQuantityMap.get(itemId);
-            OrderItem orderItem = new OrderItem();
-            orderItem.setItem(item);
-            orderItem.setQuantity(quantity.intValue());
-            orderItem.setTotalPrice(item.getPrice() * quantity);
-
-            orderItems.add(orderItem);
-
-            // Update stock for each item
-            updateStock(item, quantity);
-        }
-
-        order.getItems().addAll(orderItems.stream().map(OrderItem::getItem).collect(Collectors.toSet()));
 
         Order savedOrder = orderRepository.save(order);
 
-        OrderDTO responseOrderDTO = new OrderDTO();
-        responseOrderDTO.setId(savedOrder.getId());
-        responseOrderDTO.setCustomerId(savedOrder.getCustomerId().getId());
-        responseOrderDTO.setOrderStatus(savedOrder.getOrderStatus());
-        responseOrderDTO.setCreatedAt(savedOrder.getCreatedAt());
-        responseOrderDTO.setQuantity(savedOrder.getQuantity());
-        responseOrderDTO.setTotalPrice(savedOrder.getTotalPrice());
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (Item item : items) {
+            Long quantity = itemIdQuantityMap.get(item.getId());
+            OrderItem orderItem = new OrderItem();
+            orderItem.setItem(item);
+            orderItem.setQuantityPerItem(quantity.intValue());
+            orderItem.setPrice(item.getPrice() * quantity);
+            orderItem.setOrder(savedOrder);
 
-        List<OrderItemDTO> orderItemDTOs = orderItems.stream()
-                .map(this::mapOrderItemToDTO)
-                .collect(Collectors.toList());
+            orderItems.add(orderItem);
+            updateStock(item, quantity);
+        }
 
-        responseOrderDTO.setItems(orderItemDTOs);
+        savedOrder.getOrderItems().addAll(orderItems);
+        Order updatedOrder = orderRepository.save(savedOrder);
 
-        return responseOrderDTO;
+        return mapOrderToDTO(updatedOrder, orderItems);
     }
 
-    @NotNull
-    private static Map<Long, Long> getLongLongMap(List<Long> itemIds, List<Long> itemQuantities) {
+    @Transactional
+    @Override
+    public OrderDTO updateOrderStatus(Long orderId, OrderStatus newStatus) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ItemNotFoundException("Order not found!"));
+
+        OrderStatus currentStatus = order.getOrderStatus();
+
+        if (currentStatus == OrderStatus.REFUNDED) {
+            throw new ItemNotFoundException("Order is already refunded and locked.");
+        }
+
+        order.setOrderStatus(newStatus);
+        Order updatedOrder = orderRepository.save(order);
+
+        if (newStatus == OrderStatus.REFUNDED) {
+            handleRefundLogic(updatedOrder);
+        }
+
+        return mapOrderToDTO(updatedOrder);
+    }
+
+    @Override
+    public OrderDTO findOrderById(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ItemNotFoundException("Order not found!"));
+
+        return mapOrderToDTO(order);
+    }
+
+    private Map<Long, Long> getLongLongMap(List<Long> itemIds, List<Long> itemQuantities) {
         if (itemIds.size() != itemQuantities.size()) {
-            throw new ItemNotFoundException("itemIds and itemQuantities must have the same size.");
+            throw new ItemNotFoundException("itemIds and itemQuantities lists must have the same size.");
         }
 
         Map<Long, Long> itemIdQuantityMap = new HashMap<>();
         for (int i = 0; i < itemIds.size(); i++) {
             Long itemId = itemIds.get(i);
             Long quantity = itemQuantities.get(i);
-
-            // Check for duplicate itemIds
-            if (itemIdQuantityMap.containsKey(itemId)) {
-                // If duplicate, accumulate quantity
-                itemIdQuantityMap.put(itemId, itemIdQuantityMap.get(itemId) + quantity);
-            } else {
-                // If not a duplicate, add to the map
-                itemIdQuantityMap.put(itemId, quantity);
-            }
+            itemIdQuantityMap.put(itemId, itemIdQuantityMap.getOrDefault(itemId, 0L) + quantity);
         }
         return itemIdQuantityMap;
     }
 
-    // Additional method to update item stock
     private void updateStock(Item item, Long quantity) {
         long updatedStock = item.getAvailableQuantity() - quantity.intValue();
         item.setAvailableQuantity(updatedStock);
         itemRepository.save(item);
     }
 
+    private void handleRefundLogic(Order order) {
+        List<OrderItem> orderItems = new ArrayList<>(order.getOrderItems());
+
+        for (OrderItem orderItem : orderItems) {
+            Item item = orderItem.getItem();
+            int refundedQuantity = orderItem.getQuantityPerItem();
+
+            // Update the stock by adding the refunded quantity
+            long updatedStock = item.getAvailableQuantity() + refundedQuantity;
+            item.setAvailableQuantity(updatedStock);
+            itemRepository.save(item);
+        }
+
+        // Lock the order to prevent further changes
+        order.setOrderStatus(OrderStatus.REFUNDED);
+        orderRepository.save(order);
+    }
+
+    private OrderDTO mapOrderToDTO(Order order) {
+        List<OrderItem> orderItems = new ArrayList<>(order.getOrderItems());
+        return mapOrderToDTO(order, orderItems);
+    }
+
+    private OrderDTO mapOrderToDTO(Order order, List<OrderItem> orderItems) {
+        OrderDTO orderDTO = new OrderDTO();
+        orderDTO.setId(order.getId());
+        orderDTO.setCustomerId(order.getCustomerId().getId());
+        orderDTO.setOrderStatus(order.getOrderStatus());
+        orderDTO.setCreatedAt(order.getCreatedAt());
+        orderDTO.setTotalQuantity(order.getTotalQuantity());
+        orderDTO.setTotalPrice(order.getTotalPrice());
+
+        List<OrderItemDTO> orderItemDTOs = orderItems.stream()
+                .map(this::mapOrderItemToDTO)
+                .collect(Collectors.toList());
+
+        orderDTO.setItems(orderItemDTOs);
+
+        return orderDTO;
+    }
+
     private OrderItemDTO mapOrderItemToDTO(OrderItem orderItem) {
         OrderItemDTO orderItemDTO = new OrderItemDTO();
         orderItemDTO.setItemId(orderItem.getItem().getId());
         orderItemDTO.setItemName(orderItem.getItem().getName());
-        orderItemDTO.setQuantity(orderItem.getQuantity());
-        orderItemDTO.setTotalPrice(orderItem.getTotalPrice());
+        orderItemDTO.setQuantityPerItem(orderItem.getQuantityPerItem());
+        orderItemDTO.setPrice(orderItem.getPrice());
         return orderItemDTO;
+    }
+
+    private boolean isValidQuantities(List<Long> quantities, int expectedSize) {
+        return quantities.size() == expectedSize && quantities.stream().allMatch(qty -> qty > 0);
     }
 }

@@ -1,7 +1,7 @@
 package com.nisolabluap.quickstart.application.models.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.nisolabluap.quickstart.application.models.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -18,9 +19,10 @@ public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnoreProperties
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     @JsonBackReference
     private Customer customerId;
@@ -33,7 +35,7 @@ public class Order {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "order_items",
             joinColumns = @JoinColumn(name = "order_id"),
@@ -41,12 +43,29 @@ public class Order {
     )
     private Set<Item> items = new HashSet<>();
 
-    @Column(name = "quantity")
-    private int quantity;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<OrderItem> orderItems;
 
-    @Column(name = "total_price")
+    @Column(name = "quantity")
+    private Integer totalQuantity;
+
+    @Column(name = "total")
     private double totalPrice;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private Set<OrderItem> orderItems;
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, orderStatus, createdAt, totalQuantity, totalPrice);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Order other = (Order) obj;
+        return Objects.equals(id, other.id) &&
+                orderStatus == other.orderStatus &&
+                Objects.equals(createdAt, other.createdAt) &&
+                Objects.equals(totalQuantity, other.totalQuantity) &&
+                Objects.equals(totalPrice, other.totalPrice);
+    }
 }
