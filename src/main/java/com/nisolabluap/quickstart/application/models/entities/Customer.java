@@ -1,8 +1,10 @@
 package com.nisolabluap.quickstart.application.models.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +33,7 @@ public class Customer {
     private LocalDate birthday;
 
     @Column(name = "created_at")
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(name = "address")
@@ -42,17 +45,16 @@ public class Customer {
             joinColumns = @JoinColumn(name = "customer_id"),
             inverseJoinColumns = @JoinColumn(name = "product_id")
     )
-    @JsonManagedReference
+    @JsonBackReference
     private Set<Item> favoriteItems;
 
-    @PrePersist
-    private void localTime() {
-        createdAt = LocalDateTime.now();
-    }
+    @OneToMany(mappedBy = "customerId", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<Order> orders;
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(id, firstName, lastName, email);
     }
 
     @Override
@@ -60,12 +62,9 @@ public class Customer {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         Customer other = (Customer) obj;
-        return Objects.equals(id, other.id);
+        return Objects.equals(id, other.id) &&
+                Objects.equals(firstName, other.firstName) &&
+                Objects.equals(lastName, other.lastName) &&
+                Objects.equals(email, other.email);
     }
-
-   /* @OneToMany
-    private Set<Order> orders;
-
-    @OneToMany
-    private Set<Review> reviews;*/
 }

@@ -1,15 +1,18 @@
 package com.nisolabluap.quickstart.application.models.dtos;
 
 import com.nisolabluap.quickstart.application.models.entities.Item;
+import com.nisolabluap.quickstart.application.models.entities.Order;
 import io.swagger.annotations.ApiModelProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import org.aspectj.weaver.ast.Or;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -50,4 +53,7 @@ public class CustomerDTO {
 
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private Set<Item> favoriteItems;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private Set<Order> orders;
 }
