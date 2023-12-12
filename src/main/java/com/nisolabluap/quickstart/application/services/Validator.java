@@ -6,6 +6,7 @@ import com.nisolabluap.quickstart.application.repositories.ItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -14,7 +15,7 @@ public class Validator {
     @Autowired
     private ItemRepository itemRepository;
 
-    public Long findExistingIdByIsbn(String isbn) {
+    public Long getFindExistingIdByIsbn(String isbn) {
         Optional<Item> optionalInventory = itemRepository.findByIsbn(isbn);
 
         return optionalInventory.map(Item::getId)
@@ -22,71 +23,50 @@ public class Validator {
     }
 
     public String getDuplicateItemMessage(String isbn, Long existingId) {
-        return String.format("An item with this ISBN: '%s' already exists. Duplicate with existing ID: '%s'.", isbn, existingId);
+        return String.format("An item with this ISBN: '%s' already exists. Duplicate with existing ID: '%d'.", isbn, existingId);
     }
 
     public String getItemNotFoundMessage(Long id) {
         return String.format("Item with ID: '%d' not found.", id);
     }
 
+    public String getItemsNotFoundMessage(List<Long> itemIds) {
+        return String.format("One or more items not found: %s.", itemIds);
+    }
+
+    public String getItemsOutOfStockMessage(List<Long> itemIds) {
+        return String.format("One or more items is out of stock: %s.", itemIds);
+    }
+
     public String getDuplicateEmailMessage(String email) {
         return String.format("An user with this EMAIL: '%s' already exists.", email);
+    }
+
+    public String getInvalidQuantitiesMessage() {
+        return "Invalid quantities. Each quantity should be greater than 0 and their total number must not exceed the number of 'items'.";
     }
 
     public String getCustomerNotFoundMessage(Long id) {
         return String.format("Customer with ID: '%d' not found.", id);
     }
 
-    /*public void validateInventoryItem(InventoryDTO inventoryDTO) {
-        validateName(inventoryDTO.getName());
-        validateLocation(inventoryDTO.getLocation());
-        validateDescription(inventoryDTO.getDescription());
-        validateIsbn(inventoryDTO.getIsbn());
-        validatePrice(inventoryDTO.getPrice());
+    public String getOrderNotFoundMessage(Long id) {
+        return String.format("Order with ID: '%d' not found.", id);
     }
 
-    private void validateName(String name) {
-        if (StringUtils.isEmpty(name)) {
-            throw new IllegalArgumentException("Name must not be empty.");
-        }
-        if (name.length() > 50) {
-            throw new IllegalArgumentException("Name must not exceed 50 characters.");
-        }
+    public String getOrderAlreadyRefundedMessage(Long id) {
+        return String.format("Order with ID: '%d' was already refunded and cannot be modified.", id);
     }
 
-    private void validateLocation(String location) {
-        if (StringUtils.isEmpty(location)) {
-            throw new IllegalArgumentException("Location must not be empty.");
-        }
-        if (location.length() > 20) {
-            throw new IllegalArgumentException("Location must not exceed 20 characters.");
-        }
+    public String getDataIntegrityItemMessage(Long id) {
+        return String.format("Item with ID: '%d' cannot be deleted because it is still referenced in other entities.", id);
     }
 
-    private void validateDescription(String description) {
-        if (StringUtils.isEmpty(description)) {
-            throw new IllegalArgumentException("Description must not be empty.");
-        }
-        if (description.length() > 500) {
-            throw new IllegalArgumentException("Description must not exceed 500 characters.");
-        }
+    public String getDataIntegrityCustomerMessage(Long id) {
+        return String.format("Customer with ID: '%d' cannot be deleted because it is still referenced in other entities.", id);
     }
 
-    private void validateIsbn(String isbn) {
-        if (StringUtils.isEmpty(isbn)) {
-            throw new IllegalArgumentException("ISBN must not be empty.");
-        }
-        if (!isbn.matches("^[0-9]{13}$")) {
-            throw new IllegalArgumentException("ISBN format is invalid.");
-        }
+    public String getOpenAIMessage() {
+        return "An error occur while trying to obtain the recommended products.";
     }
-
-    private void validatePrice(double price) {
-        if (price <= 0) {
-            throw new IllegalArgumentException("Price must be greater than 0.");
-        }
-        if (price > Double.MAX_VALUE) {
-            throw new IllegalArgumentException("Price exceeds the maximum value.");
-        }
-    }*/
 }

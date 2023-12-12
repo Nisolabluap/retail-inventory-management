@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Data
 public class CustomerCreateDTO {
 
-    @Schema(description = "Customer ID", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Customer ID.", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
     @NotBlank(message = "First name is required.")
@@ -29,7 +29,7 @@ public class CustomerCreateDTO {
 
     @NotBlank
     @Pattern(regexp = "^[A-Za-z0-9.]+@[A-Za-z]+\\.[A-Za-z]{2,}$", message = "Invalid email address.")
-    @ApiModelProperty(value = "Email should be in this format abc@cba.com")
+    @ApiModelProperty(value = "Email should be in this format abc@cba.com.")
     @Schema(example = "john.doe@example.com")
     private String email;
 
@@ -39,6 +39,6 @@ public class CustomerCreateDTO {
     @NotBlank(message = "Address is required.")
     @Size(max = 50, message = "Address must not exceed 50 characters.")
     @ApiModelProperty(value = "Address must not be empty and must not exceed 50 characters.")
-    @Schema(example = "123 Main St")
+    @Schema(example = "123 Main St.")
     private String address;
 }

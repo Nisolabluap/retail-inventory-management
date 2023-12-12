@@ -2,15 +2,16 @@ package com.nisolabluap.quickstart.application.controllers;
 
 import com.nisolabluap.quickstart.application.models.dtos.ItemDTO;
 import com.nisolabluap.quickstart.application.models.dtos.ItemUpdateIsbnDTO;
+import com.nisolabluap.quickstart.application.models.enums.ProductCategory;
 import com.nisolabluap.quickstart.application.services.ItemService;
+import io.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,27 @@ import java.util.List;
 public class ItemController {
 
     @Autowired
-    private ItemService itemService;
+    private final ItemService itemService;
+
+    @GetMapping("/search")
+    @Operation(
+            summary = "Search items based on parameters.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Items retrieved successfully."),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error.")
+            }
+    )
+    public ResponseEntity<List<ItemDTO>> searchItems(
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "category", required = false) ProductCategory category,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "id", required = false) Long id,
+            @RequestParam(value = "isbn", required = false) String isbn,
+            @RequestParam(value = "quantity", required = false) Long availableQuantity,
+            @RequestParam(value = "price", required = false) Double price) {
+        List<ItemDTO> items = itemService.searchItems(name, category, description, id, isbn, availableQuantity, price);
+        return ResponseEntity.ok(items);
+    }
 
     @GetMapping
     @Operation(
@@ -48,8 +69,8 @@ public class ItemController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error.")
             }
     )
-    public ItemDTO createItem(@Valid @RequestBody ItemDTO itemDTO) {
-        return ResponseEntity.ok(itemService.createItem(itemDTO)).getBody();
+    public ItemDTO createItem(@Valid @RequestBody ItemDTO itemDTO, @RequestParam ProductCategory productCategory) {
+        return ResponseEntity.ok(itemService.createItem(itemDTO, productCategory)).getBody();
     }
 
     @PutMapping("/{id}")
@@ -62,8 +83,8 @@ public class ItemController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error.")
             }
     )
-    public ItemDTO updateItemById(@PathVariable Long id, @Valid @RequestBody ItemDTO itemDTO) {
-        return ResponseEntity.ok(itemService.updateItemById(id, itemDTO)).getBody();
+    public ItemDTO updateItemById(@PathVariable Long id, @Valid @RequestBody ItemDTO itemDTO, @RequestParam ProductCategory productCategory) {
+        return ResponseEntity.ok(itemService.updateItemById(id, itemDTO, productCategory)).getBody();
     }
 
     @PutMapping("/{id}/{isbn}")
@@ -107,23 +128,5 @@ public class ItemController {
         return ResponseEntity.ok("The item has been deleted.");
     }
 
-    @Value("${inventory.delete.password}")
-    private String deletePassword;
 
-    @DeleteMapping
-    @Operation(
-            summary = "Delete all inventory items.",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "All items have been deleted."),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized.")
-            }
-    )
-    public ResponseEntity<String> deleteAllItems(@RequestParam String password) {
-        if (deletePassword.equals(password)) {
-            itemService.deleteAllItems();
-            return ResponseEntity.ok("All items have been deleted.");
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Wrong password.");
-        }
-    }
 }

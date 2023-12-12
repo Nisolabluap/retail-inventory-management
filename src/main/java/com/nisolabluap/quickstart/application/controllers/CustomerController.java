@@ -105,9 +105,7 @@ public class CustomerController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error.")
             }
     )
-    public ResponseEntity<String> toggleFavoriteItems(
-            @PathVariable Long customerId,
-            @RequestParam List<Long> itemIds) {
+    public ResponseEntity<String> toggleFavoriteItems(@PathVariable Long customerId, @RequestParam List<Long> itemIds) {
         customerService.toggleFavoriteItems(customerId, itemIds);
         return ResponseEntity.ok("Action complete.");
     }
