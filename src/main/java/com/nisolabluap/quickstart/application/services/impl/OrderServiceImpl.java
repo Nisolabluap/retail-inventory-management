@@ -1,7 +1,18 @@
 package com.nisolabluap.quickstart.application.services.impl;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nisolabluap.quickstart.application.exceptions.customer.CustomerNotFoundException;
-import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
+import com.nisolabluap.quickstart.application.exceptions.item.ItemsNotFoundException;
+import com.nisolabluap.quickstart.application.exceptions.item.ItemsOutOfStockException;
+import com.nisolabluap.quickstart.application.exceptions.order.InvalidQuantitiesException;
+import com.nisolabluap.quickstart.application.exceptions.order.OrderAlreadyRefundedException;
+import com.nisolabluap.quickstart.application.exceptions.order.OrderNotFoundException;
 import com.nisolabluap.quickstart.application.models.dtos.OrderDTO;
 import com.nisolabluap.quickstart.application.models.dtos.OrderItemDTO;
 import com.nisolabluap.quickstart.application.models.entities.Customer;
@@ -13,12 +24,7 @@ import com.nisolabluap.quickstart.application.repositories.CustomerRepository;
 import com.nisolabluap.quickstart.application.repositories.ItemRepository;
 import com.nisolabluap.quickstart.application.repositories.OrderRepository;
 import com.nisolabluap.quickstart.application.services.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import com.nisolabluap.quickstart.application.services.Validator;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -29,75 +35,35 @@ public class OrderServiceImpl implements OrderService {
     private ItemRepository itemRepository;
     @Autowired
     private CustomerRepository customerRepository;
+    @Autowired
+    private Validator validator;
 
     @Transactional
     @Override
     public OrderDTO createOrder(OrderDTO orderDTO, Long customerId, List<Long> itemIds, List<Long> itemQuantities) {
         Map<Long, Long> itemIdQuantityMap = getLongLongMap(itemIds, itemQuantities);
+        validateCustomerAndItems(customerId, itemIds, itemIdQuantityMap);
 
-        if (!isValidQuantities(new ArrayList<>(itemIdQuantityMap.values()), itemIdQuantityMap.size())) {
-            throw new ItemNotFoundException("Invalid quantities. Each quantity should be greater than 0 and not exceed the number of itemIds.");
-        }
+        List<Item> items = fetchItems(itemIdQuantityMap);
 
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException("Customer not found!"));
+        validateOutOfStock(items, itemIdQuantityMap);
 
-        List<Item> items = itemRepository.findAllById(new ArrayList<>(itemIdQuantityMap.keySet()));
+        double totalPrice = calculateTotalPrice(items, itemIdQuantityMap);
 
-        if (items.isEmpty()) {
-            throw new ItemNotFoundException("Items not found!");
-        }
+        Order savedOrder = saveOrder(customerId, itemIdQuantityMap, totalPrice);
 
-        for (Item item : items) {
-            Long quantity = itemIdQuantityMap.get(item.getId());
-            if (quantity > item.getAvailableQuantity()) {
-                throw new ItemNotFoundException("Insufficient stock for one or more items in the order.");
-            }
-        }
+        List<OrderItem> orderItems = saveOrderItems(items, savedOrder, itemIdQuantityMap);
 
-        double totalPrice = items.stream()
-                .mapToDouble(item -> item.getPrice() * itemIdQuantityMap.get(item.getId()))
-                .sum();
-
-        Order order = new Order();
-        order.setCustomerId(customer);
-        order.setOrderStatus(OrderStatus.PAYED);
-        order.setOrderItems(new HashSet<>());
-        order.setTotalQuantity(itemIdQuantityMap.values().stream().mapToInt(Long::intValue).sum());
-        order.setTotalPrice(totalPrice);
-
-        Order savedOrder = orderRepository.save(order);
-
-        List<OrderItem> orderItems = new ArrayList<>();
-        for (Item item : items) {
-            Long quantity = itemIdQuantityMap.get(item.getId());
-            OrderItem orderItem = new OrderItem();
-            orderItem.setItem(item);
-            orderItem.setQuantityPerItem(quantity.intValue());
-            orderItem.setPrice(item.getPrice() * quantity);
-            orderItem.setOrder(savedOrder);
-
-            orderItems.add(orderItem);
-            updateStock(item, quantity);
-        }
-
-        savedOrder.getOrderItems().addAll(orderItems);
-        Order updatedOrder = orderRepository.save(savedOrder);
-
-        return mapOrderToDTO(updatedOrder, orderItems);
+        return mapOrderToDTO(savedOrder, orderItems);
     }
 
     @Transactional
     @Override
     public OrderDTO updateOrderStatus(Long orderId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ItemNotFoundException("Order not found!"));
+                .orElseThrow(() -> new OrderNotFoundException(validator.getOrderNotFoundMessage(orderId)));
 
-        OrderStatus currentStatus = order.getOrderStatus();
-
-        if (currentStatus == OrderStatus.REFUNDED) {
-            throw new ItemNotFoundException("Order is already refunded and locked.");
-        }
+        validateOrderStatus(order);
 
         order.setOrderStatus(newStatus);
         Order updatedOrder = orderRepository.save(order);
@@ -112,14 +78,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO findOrderById(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ItemNotFoundException("Order not found!"));
+                .orElseThrow(() -> new OrderNotFoundException(validator.getOrderNotFoundMessage(orderId)));
 
         return mapOrderToDTO(order);
     }
 
     private Map<Long, Long> getLongLongMap(List<Long> itemIds, List<Long> itemQuantities) {
         if (itemIds.size() != itemQuantities.size()) {
-            throw new ItemNotFoundException("itemIds and itemQuantities lists must have the same size.");
+            throw new InvalidQuantitiesException(validator.getInvalidQuantitiesMessage());
         }
 
         Map<Long, Long> itemIdQuantityMap = new HashMap<>();
@@ -129,6 +95,84 @@ public class OrderServiceImpl implements OrderService {
             itemIdQuantityMap.put(itemId, itemIdQuantityMap.getOrDefault(itemId, 0L) + quantity);
         }
         return itemIdQuantityMap;
+    }
+
+    private void validateCustomerAndItems(Long customerId, List<Long> itemIds, Map<Long, Long> itemIdQuantityMap) {
+        customerRepository.findById(customerId).orElseThrow(() -> new CustomerNotFoundException(validator.getCustomerNotFoundMessage(customerId)));
+        List<Item> items = fetchItems(itemIdQuantityMap);
+        validateItemsExist(new ArrayList<>(itemIds), items);
+    }
+
+    private List<Item> fetchItems(Map<Long, Long> itemIdQuantityMap) {
+        List<Item> items = itemRepository.findAllById(new ArrayList<>(itemIdQuantityMap.keySet()));
+        validateItemsExist(new ArrayList<>(itemIdQuantityMap.keySet()), items);
+        return items;
+    }
+
+    private void validateItemsExist(List<Long> itemIds, List<Item> items) {
+        Set<Long> fetchedItemIds = items.stream().map(Item::getId).collect(Collectors.toSet());
+        Set<Long> missingItemIds = new HashSet<>(itemIds);
+        missingItemIds.removeAll(fetchedItemIds);
+
+        if (!missingItemIds.isEmpty()) {
+            throw new ItemsNotFoundException(validator.getItemsNotFoundMessage(new ArrayList<>(missingItemIds)));
+        }
+    }
+
+    private void validateOutOfStock(List<Item> items, Map<Long, Long> itemIdQuantityMap) {
+        List<Item> outOfStockItems = new ArrayList<>();
+
+        for (Item item : items) {
+            Long quantity = itemIdQuantityMap.get(item.getId());
+            if (quantity > item.getAvailableQuantity()) {
+                outOfStockItems.add(item);
+            }
+        }
+
+        if (!outOfStockItems.isEmpty()) {
+            List<Long> outOfStockItemIds = outOfStockItems.stream().map(Item::getId).toList();
+            throw new ItemsOutOfStockException(validator.getItemsOutOfStockMessage(outOfStockItemIds));
+        }
+    }
+
+    private double calculateTotalPrice(List<Item> items, Map<Long, Long> itemIdQuantityMap) {
+        return items.stream()
+                .mapToDouble(item -> item.getPrice() * itemIdQuantityMap.get(item.getId()))
+                .sum();
+    }
+
+    private Order saveOrder(Long customerId, Map<Long, Long> itemIdQuantityMap, double totalPrice) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException(validator.getCustomerNotFoundMessage(customerId)));
+
+        Order order = new Order();
+        order.setCustomerId(customer);
+        order.setOrderStatus(OrderStatus.PAYED);
+        order.setOrderItems(new HashSet<>());
+        order.setTotalQuantity(itemIdQuantityMap.values().stream().mapToInt(Long::intValue).sum());
+        order.setTotalPrice(totalPrice);
+
+        return orderRepository.save(order);
+    }
+
+    private List<OrderItem> saveOrderItems(List<Item> items, Order savedOrder, Map<Long, Long> itemIdQuantityMap) {
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (Item item : items) {
+            Long quantity = itemIdQuantityMap.get(item.getId());
+            OrderItem orderItem = new OrderItem();
+            orderItem.setItem(item);
+            orderItem.setQuantityPerItem(quantity.intValue());
+            orderItem.setPrice(item.getPrice() * quantity);
+            orderItem.setOrder(savedOrder);
+
+            orderItems.add(orderItem);
+            updateStock(item, quantity);
+        }
+
+        savedOrder.getOrderItems().addAll(orderItems);
+        orderRepository.save(savedOrder);
+
+        return orderItems;
     }
 
     private void updateStock(Item item, Long quantity) {
@@ -144,15 +188,21 @@ public class OrderServiceImpl implements OrderService {
             Item item = orderItem.getItem();
             int refundedQuantity = orderItem.getQuantityPerItem();
 
-            // Update the stock by adding the refunded quantity
             long updatedStock = item.getAvailableQuantity() + refundedQuantity;
             item.setAvailableQuantity(updatedStock);
             itemRepository.save(item);
         }
 
-        // Lock the order to prevent further changes
         order.setOrderStatus(OrderStatus.REFUNDED);
         orderRepository.save(order);
+    }
+
+    private void validateOrderStatus(Order order) {
+        OrderStatus currentStatus = order.getOrderStatus();
+
+        if (currentStatus == OrderStatus.REFUNDED) {
+            throw new OrderAlreadyRefundedException(validator.getOrderAlreadyRefundedMessage(order.getId()));
+        }
     }
 
     private OrderDTO mapOrderToDTO(Order order) {
@@ -171,10 +221,8 @@ public class OrderServiceImpl implements OrderService {
 
         List<OrderItemDTO> orderItemDTOs = orderItems.stream()
                 .map(this::mapOrderItemToDTO)
-                .collect(Collectors.toList());
-
+                .toList();
         orderDTO.setItems(orderItemDTOs);
-
         return orderDTO;
     }
 
@@ -185,9 +233,5 @@ public class OrderServiceImpl implements OrderService {
         orderItemDTO.setQuantityPerItem(orderItem.getQuantityPerItem());
         orderItemDTO.setPrice(orderItem.getPrice());
         return orderItemDTO;
-    }
-
-    private boolean isValidQuantities(List<Long> quantities, int expectedSize) {
-        return quantities.size() == expectedSize && quantities.stream().allMatch(qty -> qty > 0);
     }
 }

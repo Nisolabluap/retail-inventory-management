@@ -1,23 +1,17 @@
 package com.nisolabluap.quickstart.application.models.dtos;
 
-import com.nisolabluap.quickstart.application.models.entities.OrderItem;
 import com.nisolabluap.quickstart.application.models.enums.OrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 
 @Data
 public class OrderDTO {
 
-    @Schema(description = "Order ID", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Order ID.", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
     @NotNull(message = "Customer ID is required.")

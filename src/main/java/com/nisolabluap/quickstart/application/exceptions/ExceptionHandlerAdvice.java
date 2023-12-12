@@ -2,10 +2,14 @@ package com.nisolabluap.quickstart.application.exceptions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nisolabluap.quickstart.application.exceptions.customer.CustomerDataIntegrityException;
 import com.nisolabluap.quickstart.application.exceptions.customer.CustomerNotFoundException;
 import com.nisolabluap.quickstart.application.exceptions.customer.DuplicateEmailException;
-import com.nisolabluap.quickstart.application.exceptions.item.DuplicateItemException;
-import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
+import com.nisolabluap.quickstart.application.exceptions.item.*;
+import com.nisolabluap.quickstart.application.exceptions.open_AI.OpenAIException;
+import com.nisolabluap.quickstart.application.exceptions.order.InvalidQuantitiesException;
+import com.nisolabluap.quickstart.application.exceptions.order.OrderAlreadyRefundedException;
+import com.nisolabluap.quickstart.application.exceptions.order.OrderNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @ControllerAdvice
@@ -39,17 +43,57 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ItemNotFoundException.class)
     public ResponseEntity<String> itemNotFoundException(ItemNotFoundException inventoryNotFoundException) {
-        return new ResponseEntity<>(objectToString(Map.of("message", inventoryNotFoundException.getMessage())), BAD_REQUEST);
+        return new ResponseEntity<>(objectToString(Map.of("message", inventoryNotFoundException.getMessage())), NOT_FOUND);
     }
 
     @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<String> DuplicateEmailException(DuplicateEmailException duplicateEmailException) {
+    public ResponseEntity<String> duplicateEmailException(DuplicateEmailException duplicateEmailException) {
         return new ResponseEntity<>(objectToString(Map.of("message", duplicateEmailException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ItemsNotFoundException.class)
+    public ResponseEntity<String> itemsNotFoundException(ItemsNotFoundException itemsNotFoundException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", itemsNotFoundException.getMessage())), NOT_FOUND);
     }
 
     @ExceptionHandler(CustomerNotFoundException.class)
     public ResponseEntity<String> customerNotFoundException(CustomerNotFoundException customerNotFoundException) {
-        return new ResponseEntity<>(objectToString(Map.of("message", customerNotFoundException.getMessage())), BAD_REQUEST);
+        return new ResponseEntity<>(objectToString(Map.of("message", customerNotFoundException.getMessage())), NOT_FOUND);
+    }
+
+    @ExceptionHandler(ItemsOutOfStockException.class)
+    public ResponseEntity<String> itemsOutOfStock(ItemsOutOfStockException itemsOutOfStockException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", itemsOutOfStockException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidQuantitiesException.class)
+    public ResponseEntity<String> invalidQuantityException(InvalidQuantitiesException invalidQuantityException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", invalidQuantityException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<String> orderNotFoundException(OrderNotFoundException orderNotFoundException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", orderNotFoundException.getMessage())), NOT_FOUND);
+    }
+
+    @ExceptionHandler(OrderAlreadyRefundedException.class)
+    public ResponseEntity<String> orderAlreadyRefundedException(OrderAlreadyRefundedException orderAlreadyRefundedException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", orderAlreadyRefundedException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ItemDataIntegrityException.class)
+    public ResponseEntity<String> itemDataIntegrityException(ItemDataIntegrityException itemDataIntegrityException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", itemDataIntegrityException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(CustomerDataIntegrityException.class)
+    public ResponseEntity<String> customerDataIntegrityException(CustomerDataIntegrityException customerDataIntegrityException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", customerDataIntegrityException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(OpenAIException.class)
+    public ResponseEntity<String> openAIException(OpenAIException openAIException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", openAIException.getMessage())), BAD_REQUEST);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -71,7 +115,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
             String defaultMessage = Objects.requireNonNull(error.getDefaultMessage());
             errors.put(error.getField(), defaultMessage);
         });
-        return new ResponseEntity<>(objectToString(errors), BAD_REQUEST);
+        return new ResponseEntity<>(objectToString(errors), status);
     }
 
     private String objectToString(Object response) {

@@ -5,6 +5,7 @@ import com.nisolabluap.quickstart.application.models.enums.ProductCategory;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -32,7 +33,7 @@ public class Item {
     private ProductCategory productCategory;
 
     @Column(name = "price")
-    private double price;
+    private Double price;
 
     @Column(name = "isbn", unique = true)
     private String isbn;

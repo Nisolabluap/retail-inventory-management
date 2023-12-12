@@ -1,7 +1,9 @@
 package com.nisolabluap.quickstart.application.services.impl;
 
+import com.nisolabluap.quickstart.application.exceptions.customer.CustomerDataIntegrityException;
 import com.nisolabluap.quickstart.application.exceptions.customer.CustomerNotFoundException;
 import com.nisolabluap.quickstart.application.exceptions.customer.DuplicateEmailException;
+import com.nisolabluap.quickstart.application.exceptions.item.ItemDataIntegrityException;
 import com.nisolabluap.quickstart.application.exceptions.item.ItemNotFoundException;
 import com.nisolabluap.quickstart.application.models.dtos.CustomerCreateDTO;
 import com.nisolabluap.quickstart.application.models.dtos.CustomerDTO;
@@ -16,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,11 +31,11 @@ import java.util.Optional;
 public class CustomerServiceImpl implements CustomerService {
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private final CustomerRepository customerRepository;
     @Autowired
-    private ItemRepository itemRepository;
+    private final ItemRepository itemRepository;
     @Autowired
-    private Validator validator;
+    private final Validator validator;
 
     @Override
     public List<CustomerDTO> getAllCustomers() {
@@ -68,13 +72,17 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public void deleteCustomerById(Long id) {
-        Optional<Customer> optionalCustomer = customerRepository.findById(id);
-        if (optionalCustomer.isEmpty()) {
-            throw new CustomerNotFoundException(validator.getCustomerNotFoundMessage(id));
+        try {
+            Optional<Customer> optionalCustomer = customerRepository.findById(id);
+            if (optionalCustomer.isEmpty()) {
+                throw new CustomerNotFoundException(validator.getCustomerNotFoundMessage(id));
+            }
+            Customer deletedCustomer = optionalCustomer.get();
+            customerRepository.deleteById(id);
+            convertToDTO(deletedCustomer);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new CustomerDataIntegrityException(validator.getDataIntegrityCustomerMessage(id));
         }
-        Customer deletedCustomer = optionalCustomer.get();
-        customerRepository.deleteById(id);
-        convertToDTO(deletedCustomer);
     }
 
     @Override

@@ -6,4 +6,3 @@ public enum OrderStatus {
     SENT,
     REFUNDED
 }
-
