@@ -98,7 +98,7 @@ The Retail Inventory System is a comprehensive software solution designed to str
 ```
 #### Get a item by ID
 ```http
-GET/api/items/{id}
+ GET /api/items/{id}
 ```
 #### Delete a item by ID
 ```http
@@ -115,15 +115,15 @@ GET/api/items/{id}
 
 #### Get order by ID
 ```http
-  GET/api/orders/{orderId}
+  GET /api/orders/{orderId}
 ```
 #### Create an order
 ```http
-  POST/api/orders/
+  POST /api/orders/
 ```
 #### Update order status by ID
 ```http
-  POST/api/orders/{orderId}/status"
+  POST /api/orders/{orderId}/status"
 ```
 
 ## Features
